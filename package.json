@@ -1,0 +1,21 @@
+{
+  "name": "ai-cold-mail-generator-mono",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+ "scripts": {
+  "install": "npm install && npm install --prefix server && npm install --prefix client/ai-cold-mail-generator",
+  "start": "concurrently \"npm run start:server\" \"npm run start:client\"",
+  "start:server": "npm --prefix server run start",
+  "start:client": "npm --prefix client/ai-cold-mail-generator run build && npm --prefix client/ai-cold-mail-generator run start",
+  "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+  "dev:server": "npm --prefix server run dev",
+  "dev:client": "npm --prefix client/ai-cold-mail-generator run dev"
+},
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "concurrency": "^0.1.4",
+    "concurrently": "^10.0.5"
+  }
+}
