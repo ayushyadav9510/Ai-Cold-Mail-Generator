@@ -39,14 +39,17 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/ai", aiRoutes);
 
-
 const path = require('path');
 
-app.use(express.static(path.join(__dirname, '../client/ai-cold-mail-generator/dist')));
+app.use(express.static(path.resolve(__dirname, '..', 'client', 'ai-cold-mail-generator', 'dist')));
 
- app.use((req, res) => {
-  res.sendFile(path.join(__dirname, '../client/ai-cold-mail-generator/dist', 'index.html'));
+app.use((req, res, next) => {
+  if (req.url.startsWith('/api')) {
+    return next();
+  }
+  res.sendFile(path.resolve(__dirname, '..', 'client', 'ai-cold-mail-generator', 'dist', 'index.html'));
 });
+
 
 
 // Database
