@@ -41,13 +41,13 @@ app.use("/api/ai", aiRoutes);
 
 const path = require('path');
 
-app.use(express.static(path.resolve(__dirname, '..', 'client', 'ai-cold-mail-generator', 'dist')));
+app.use(express.static(path.join(__dirname, 'dist')));
 
 app.use((req, res, next) => {
   if (req.url.startsWith('/api')) {
     return next();
   }
-  res.sendFile(path.resolve(__dirname, '..', 'client', 'ai-cold-mail-generator', 'dist', 'index.html'));
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 
