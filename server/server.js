@@ -1,7 +1,7 @@
 const express = require("express");
 require("dotenv").config();
-
 const cors = require("cors");
+const path = require("path");
 
 const authRoutes = require("./routes/authRoutes");
 const aiRoutes = require("./routes/aiRoutes");
@@ -31,47 +31,30 @@ app.use(
   })
 );
 
-
-
 // Middleware
 app.use(express.json());
+
+// Database Connection
+connectDB();
 
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/ai", aiRoutes);
 
-const path = require('path');
-
-app.use(express.static(path.join(__dirname, 'dist')));
-
-app.use((req, res, next) => {
-  if (req.url.startsWith('/api')) {
-    return next();
-  }
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-});
-
-
-
-// Database
-connectDB();
-
-// Health check
+// Health check (Isi se Render handle karega root request)
 app.get("/", (req, res) => {
-  res.status(200).send("AI Cold Mail Generator API is running");
+  res.status(200).send("AI Cold Mail Generator API is running successfully");
 });
 
 // Error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
-
   res.status(500).json({
     error: "Something went wrong",
   });
 });
 
 const PORT = process.env.PORT || 3000;
-
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

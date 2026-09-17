@@ -138,7 +138,7 @@ Return only the JSON object.
     const aiResponse = await axios.post(
       'https://api.groq.com/openai/v1/chat/completions',
       {
-        model: 'qwen/qwen3.6-27b',
+       model: "qwen-2.5-coder-32b",
 
         messages: [
           {
