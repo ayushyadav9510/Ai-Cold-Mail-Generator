@@ -9,11 +9,11 @@ const connectDB = require("./config/db");
 
 const app = express();
 
-// CORS
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
   "https://ai-cold-mail-generator-a9go.onrender.com",
+  "https://ai-cold-mail-generator-gamma.vercel.app" 
 ];
 
 app.use(
@@ -30,6 +30,7 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
 
 
 // Middleware
