@@ -102,7 +102,7 @@ Return only the JSON object.
     const aiResponse = await axios.post(
       'https://api.groq.com/openai/v1/chat/completions',
       {
-        model: "qwen/qwen3.6-27b", 
+        model: "llama-3.3-70b-versatile",
         messages: [
           {
             role: 'system',
@@ -116,7 +116,7 @@ Return only the JSON object.
         temperature: 0.2,
         max_completion_tokens: 4096,
 
-        // ✨ FIXED: Changed from 'none' to 'low' as required by modern Groq API specs
+      
         reasoning_effort: 'low',
         reasoning_format: 'hidden',
 
@@ -282,7 +282,6 @@ Return only the JSON object.
       });
     }
 
-    // ✨ FIXED: Corrected spelling typo from .jon to .json to prevent server crash
     return res.status(500).json({
       message: 'Failed to generate email',
       error: error.response?.data?.error?.message || error.response?.data?.error || error.message
