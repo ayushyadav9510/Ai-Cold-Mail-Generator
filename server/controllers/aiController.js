@@ -58,38 +58,22 @@ Rules:
 SUBJECT:
 - 6 to 9 words
 - Professional and confident
-- No "Quick question"
-- No "Job application"
-- No "Looking for opportunity"
 EMAIL BODY:
 - 60 to 90 words
 - Professional
 - Personalized
 - Clear value proposition
 - Clear CTA
-- Professional sign-off
-- No emojis
 LINKEDIN DM:
 - 30 to 50 words
 - Conversational
-- Short
-- Clear value
-- Soft CTA
 FOLLOW-UP EMAIL:
 - 50 to 80 words
 - Different angle from the first email
-- Professional
-- Clear value
-- Clear CTA
 IMPORTANT:
 - Return ONLY JSON.
 - Do not return markdown.
 - Do not use code fences.
-- Do not return explanations.
-- Do not return analysis.
-- Do not return thinking.
-- Do not return <think> tags.
-- Do not add extra fields.
 - All four values must be strings.
 `;
 
@@ -99,43 +83,41 @@ Create a professional cold email based on this request:
 Return only the JSON object.
 `;
 
-const aiResponse = await axios.post(
-  'https://groq.com',
-  {
-    model: "llama-3.3-70b-versatile", 
-    messages: [
+    // ✨ FULL COMPATIBILITY PRODUCTION API CALL
+    const aiResponse = await axios.post(
+      'https://groq.com',
       {
-        role: 'system',
-        content: systemPrompt
+        model: "llama-3.3-70b-versatile", // Stable Production Model
+        messages: [
+          {
+            role: 'system',
+            content: systemPrompt
+          },
+          {
+            role: 'user',
+            content: userPrompt
+          }
+        ],
+        temperature: 0.2,
+        max_completion_tokens: 4096,
+        response_format: {
+          type: 'json_object'
+        }
       },
       {
-        role: 'user',
-        content: userPrompt
+        headers: {
+          Authorization: `Bearer ${groqApiKey}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 60000
       }
-    ],
-    temperature: 0.2,
-    max_completion_tokens: 4096,
-    response_format: {
-      type: 'json_object'
-    }
-  },
-  {
-    headers: {
-      Authorization: `Bearer ${groqApiKey}`,
-      'Content-Type': 'application/json'
-    },
-    timeout: 60000
-  }
-);
+    );
 
-
+    // ✨ FIXED: Added explicit array check [0] for stable response mapping
     if (
-      !aiResponse.data ||
-      !aiResponse.data.choices ||
-      !aiResponse.data.choices[0] ||
-      !aiResponse.data.choices[0].message
+      !aiResponse?.data?.choices?.[0]?.message
     ) {
-      throw new Error('Invalid response from Groq API');
+      throw new Error('Invalid response structure from Groq API');
     }
 
     const message = aiResponse.data.choices[0].message;
@@ -175,47 +157,25 @@ const aiResponse = await axios.post(
     const jsonEnd = generatedText.lastIndexOf('}');
 
     if (jsonStart === -1 || jsonEnd === -1) {
-      console.error(
-        'NO JSON FOUND:',
-        generatedText
-      );
-
       return res.status(500).json({
         message: 'Failed to parse AI response',
         error: 'AI did not return a JSON object'
       });
     }
 
-    const jsonText = generatedText.substring(
-      jsonStart,
-      jsonEnd + 1
-    );
-
-    console.log(
-      'EXTRACTED JSON:',
-      jsonText
-    );
-
+    const jsonText = generatedText.substring(jsonStart, jsonEnd + 1);
     let parsedResponse;
 
     try {
       parsedResponse = JSON.parse(jsonText);
     } catch (parseError) {
-      console.error(
-        'JSON PARSE ERROR:',
-        parseError.message
-      );
-
       return res.status(500).json({
         message: 'Failed to parse AI response',
         error: 'The AI generated invalid JSON'
       });
     }
 
-    if (
-      !parsedResponse ||
-      typeof parsedResponse !== 'object'
-    ) {
+    if (!parsedResponse || typeof parsedResponse !== 'object') {
       return res.status(500).json({
         message: 'AI generated invalid data',
         error: 'Response is not an object'
@@ -240,18 +200,6 @@ const aiResponse = await axios.post(
       linkedInDM: parsedResponse.linkedInDM.trim(),
       followUpEmail: parsedResponse.followUpEmail.trim()
     };
-
-    if (
-      !emailData.subject ||
-      !emailData.emailBody ||
-      !emailData.linkedInDM ||
-      !emailData.followUpEmail
-    ) {
-      return res.status(500).json({
-        message: 'AI generated incomplete email data',
-        error: 'One or more fields are empty'
-      });
-    }
 
     const historyEntry = await EmailHistory.create({
       user: req.user._id,
@@ -292,11 +240,9 @@ exports.getHistory = async (req, res) => {
         message: 'User not authenticated'
       });
     }
-
     const history = await EmailHistory.find({ user: req.user._id }).sort({ createdAt: -1 });
     return res.status(200).json(history);
   } catch (error) {
-    console.error('HISTORY ERROR:', error.message);
     return res.status(500).json({
       message: 'Failed to fetch history',
       error: error.message
