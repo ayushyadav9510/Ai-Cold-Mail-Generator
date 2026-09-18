@@ -99,39 +99,35 @@ Create a professional cold email based on this request:
 Return only the JSON object.
 `;
 
-    const aiResponse = await axios.post(
-      'https://api.groq.com/openai/v1/chat/completions',
+const aiResponse = await axios.post(
+  'https://groq.com',
+  {
+    model: "llama-3.3-70b-versatile", 
+    messages: [
       {
-        model: "llama-3.3-70b-versatile",
-        messages: [
-          {
-            role: 'system',
-            content: systemPrompt
-          },
-          {
-            role: 'user',
-            content: userPrompt
-          }
-        ],
-        temperature: 0.2,
-        max_completion_tokens: 4096,
-
-      
-        reasoning_effort: 'low',
-        reasoning_format: 'hidden',
-
-        response_format: {
-          type: 'json_object'
-        }
+        role: 'system',
+        content: systemPrompt
       },
       {
-        headers: {
-          Authorization: `Bearer ${groqApiKey}`,
-          'Content-Type': 'application/json'
-        },
-        timeout: 60000
+        role: 'user',
+        content: userPrompt
       }
-    );
+    ],
+    temperature: 0.2,
+    max_completion_tokens: 4096,
+    response_format: {
+      type: 'json_object'
+    }
+  },
+  {
+    headers: {
+      Authorization: `Bearer ${groqApiKey}`,
+      'Content-Type': 'application/json'
+    },
+    timeout: 60000
+  }
+);
+
 
     if (
       !aiResponse.data ||
