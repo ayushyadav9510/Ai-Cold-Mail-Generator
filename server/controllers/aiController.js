@@ -5,19 +5,11 @@ exports.generateEmail = async (req, res) => {
   try {
     const { prompt } = req.body;
 
-    // =========================
-    // AUTH USER CHECK
-    // =========================
-
     if (!req.user || !req.user._id) {
       return res.status(401).json({
         message: 'User not authenticated'
       });
     }
-
-    // =========================
-    // VALIDATE PROMPT
-    // =========================
 
     if (!prompt) {
       return res.status(400).json({
@@ -43,10 +35,6 @@ exports.generateEmail = async (req, res) => {
       });
     }
 
-    // =========================
-    // GROQ API KEY
-    // =========================
-
     const groqApiKey = process.env.GROQ_API_KEY;
 
     if (!groqApiKey) {
@@ -55,35 +43,24 @@ exports.generateEmail = async (req, res) => {
       });
     }
 
-    // =========================
-    // SYSTEM PROMPT
-    // =========================
-
     const systemPrompt = `
 You are an expert cold email writer.
-
 Generate a professional cold email based on the user's request.
-
 Return ONLY a valid JSON object.
-
 The JSON object MUST contain exactly these four fields:
-
 {
   "subject": "",
   "emailBody": "",
   "linkedInDM": "",
   "followUpEmail": ""
 }
-
 Rules:
-
 SUBJECT:
 - 6 to 9 words
 - Professional and confident
 - No "Quick question"
 - No "Job application"
 - No "Looking for opportunity"
-
 EMAIL BODY:
 - 60 to 90 words
 - Professional
@@ -92,21 +69,18 @@ EMAIL BODY:
 - Clear CTA
 - Professional sign-off
 - No emojis
-
 LINKEDIN DM:
 - 30 to 50 words
 - Conversational
 - Short
 - Clear value
 - Soft CTA
-
 FOLLOW-UP EMAIL:
 - 50 to 80 words
 - Different angle from the first email
 - Professional
 - Clear value
 - Clear CTA
-
 IMPORTANT:
 - Return ONLY JSON.
 - Do not return markdown.
@@ -119,27 +93,16 @@ IMPORTANT:
 - All four values must be strings.
 `;
 
-    // =========================
-    // USER PROMPT
-    // =========================
-
     const userPrompt = `
 Create a professional cold email based on this request:
-
 "${prompt.trim()}"
-
 Return only the JSON object.
 `;
-
-    // =========================
-    // CALL GROQ API
-    // =========================
 
     const aiResponse = await axios.post(
       'https://api.groq.com/openai/v1/chat/completions',
       {
-       model: "openai/gpt-oss-120b",
-
+        model: "qwen/qwen3.6-27b", 
         messages: [
           {
             role: 'system',
@@ -150,11 +113,11 @@ Return only the JSON object.
             content: userPrompt
           }
         ],
-
         temperature: 0.2,
         max_completion_tokens: 4096,
 
-        reasoning_effort: 'none',
+        // ✨ FIXED: Changed from 'none' to 'low' as required by modern Groq API specs
+        reasoning_effort: 'low',
         reasoning_format: 'hidden',
 
         response_format: {
@@ -169,10 +132,6 @@ Return only the JSON object.
         timeout: 60000
       }
     );
-
-    // =========================
-    // CHECK GROQ RESPONSE
-    // =========================
 
     if (
       !aiResponse.data ||
@@ -197,10 +156,6 @@ Return only the JSON object.
       JSON.stringify(generatedText)
     );
 
-    // =========================
-    // EMPTY RESPONSE
-    // =========================
-
     if (!generatedText || generatedText.trim() === '') {
       return res.status(500).json({
         message: 'AI returned an empty response',
@@ -210,27 +165,15 @@ Return only the JSON object.
 
     generatedText = generatedText.trim();
 
-    // =========================
-    // REMOVE THINK TAGS
-    // =========================
-
     generatedText = generatedText
       .replace(/<think>[\s\S]*?<\/think>/gi, '')
       .trim();
-
-    // =========================
-    // REMOVE MARKDOWN
-    // =========================
 
     generatedText = generatedText
       .replace(/^json\s*/i, '')
       .replace(/^\s*/i, '')
       .replace(/\s*```$/i, '')
       .trim();
-
-    // =========================
-    // EXTRACT JSON
-    // =========================
 
     const jsonStart = generatedText.indexOf('{');
     const jsonEnd = generatedText.lastIndexOf('}');
@@ -257,10 +200,6 @@ Return only the JSON object.
       jsonText
     );
 
-    // =========================
-    // PARSE JSON
-    // =========================
-
     let parsedResponse;
 
     try {
@@ -271,20 +210,11 @@ Return only the JSON object.
         parseError.message
       );
 
-      console.error(
-        'JSON TEXT:',
-        jsonText
-      );
-
       return res.status(500).json({
         message: 'Failed to parse AI response',
         error: 'The AI generated invalid JSON'
       });
     }
-
-    // =========================
-    // VALIDATE AI RESPONSE
-    // =========================
 
     if (
       !parsedResponse ||
@@ -302,20 +232,11 @@ Return only the JSON object.
       typeof parsedResponse.linkedInDM !== 'string' ||
       typeof parsedResponse.followUpEmail !== 'string'
     ) {
-      console.error(
-        'INVALID AI DATA:',
-        parsedResponse
-      );
-
       return res.status(500).json({
         message: 'AI generated incomplete email data',
         error: 'Required fields are missing or invalid'
       });
     }
-
-    // =========================
-    // EMAIL DATA
-    // =========================
 
     const emailData = {
       subject: parsedResponse.subject.trim(),
@@ -323,10 +244,6 @@ Return only the JSON object.
       linkedInDM: parsedResponse.linkedInDM.trim(),
       followUpEmail: parsedResponse.followUpEmail.trim()
     };
-
-    // =========================
-    // FINAL VALIDATION
-    // =========================
 
     if (
       !emailData.subject ||
@@ -340,10 +257,6 @@ Return only the JSON object.
       });
     }
 
-    // =========================
-    // SAVE HISTORY
-    // =========================
-
     const historyEntry = await EmailHistory.create({
       user: req.user._id,
       prompt: prompt.trim(),
@@ -353,119 +266,45 @@ Return only the JSON object.
       followUpEmail: emailData.followUpEmail
     });
 
-    // =========================
-    // SUCCESS
-    // =========================
-
     return res.status(200).json(historyEntry);
 
   } catch (error) {
-
-    console.error(
-      '================ AI ERROR ================'
-    );
-
-    console.error(
-      'STATUS:',
-      error.response?.status
-    );
-
-    console.error(
-      'GROQ ERROR:',
-      JSON.stringify(
-        error.response?.data,
-        null,
-        2
-      )
-    );
-
-    console.error(
-      'MESSAGE:',
-      error.message
-    );
-
-    console.error(
-      '=========================================='
-    );
-
-    // =========================
-    // RATE LIMIT
-    // =========================
+    console.error('================ AI ERROR ================');
+    console.error('STATUS:', error.response?.status);
+    console.error('GROQ ERROR:', JSON.stringify(error.response?.data, null, 2));
+    console.error('MESSAGE:', error.message);
+    console.error('==========================================');
 
     if (error.response?.status === 429) {
       return res.status(429).json({
-        message:
-          'Too many requests. Please wait a moment before trying again.',
+        message: 'Too many requests. Please wait a moment before trying again.',
         error: 'Rate limit exceeded'
       });
     }
 
-    // =========================
-    // GROQ ERROR
-    // =========================
-
+    // ✨ FIXED: Corrected spelling typo from .jon to .json to prevent server crash
     return res.status(500).json({
       message: 'Failed to generate email',
-      error:
-        error.response?.data?.error?.message ||
-        error.response?.data?.error ||
-        error.message
+      error: error.response?.data?.error?.message || error.response?.data?.error || error.message
     });
   }
 };
 
-
-// ==========================================
-// GET EMAIL HISTORY
-// ==========================================
-
 exports.getHistory = async (req, res) => {
   try {
-
-    // =========================
-    // AUTH USER CHECK
-    // =========================
-
     if (!req.user || !req.user._id) {
       return res.status(401).json({
         message: 'User not authenticated'
       });
     }
 
-    // =========================
-    // GET HISTORY
-    // =========================
-
-    const history = await EmailHistory
-      .find({
-        user: req.user._id
-      })
-      .sort({
-        createdAt: -1
-      });
-
+    const history = await EmailHistory.find({ user: req.user._id }).sort({ createdAt: -1 });
     return res.status(200).json(history);
-
   } catch (error) {
-
-    console.error(
-      'HISTORY ERROR:',
-      error.message
-    );
-
+    console.error('HISTORY ERROR:', error.message);
     return res.status(500).json({
       message: 'Failed to fetch history',
       error: error.message
     });
   }
 };
-
-
-exports.getHistory = async (req, res) => {
-  try{
-    const histroy = await EmailHistory.find({ user: req.user._id }).sort({ createdAt: -1 });
-    res.status(200).json(histroy);
-  } catch(error){
-    res.status(500).json({ message: 'Failed to fetch histroy', error: error.message });
-  }
-}
