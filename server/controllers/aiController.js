@@ -34,11 +34,10 @@ Rules: All values must be strings. No markdown formatting or code fences.
 
     const userPrompt = `Create a professional cold email based on this request: "${prompt.trim()}". Return only the JSON object.`;
 
-    // ✨ 100% CORRECT OFFICIAL GROQ ENDPOINT & STABLE MODEL CONFIG
     const aiResponse = await axios.post(
-      'https://api.groq.com/openai/v1/chat/completions',
+      'https://groq.com',
       {
-    model: "llama3-8b-8192", 
+        model: "llama3-8b-8192", 
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
