@@ -1,4 +1,4 @@
-const axios = require('axios');
+const Groq = require('groq-sdk');
 const EmailHistory = require('../models/EmailHistory');
 
 exports.generateEmail = async (req, res) => {
@@ -18,6 +18,8 @@ exports.generateEmail = async (req, res) => {
       return res.status(500).json({ message: 'AI service is not configured' });
     }
 
+    const groq = new Groq({ apiKey: groqApiKey });
+
     const systemPrompt = `
 You are an expert cold email writer.
 Generate a professional cold email based on the user's request.
@@ -34,34 +36,24 @@ Rules: All values must be strings. No markdown formatting or code fences.
 
     const userPrompt = `Create a professional cold email based on this request: "${prompt.trim()}". Return only the JSON object.`;
 
-    const aiResponse = await axios.post(
-      'https://groq.com',
-      {
-        model: "llama3-8b-8192", 
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: 0.2,
-        max_completion_tokens: 4096,
-        response_format: { type: 'json_object' }
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${groqApiKey}`,
-          'Content-Type': 'application/json'
-        },
-        timeout: 60000
-      }
-    );
+    
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      model: 'llama3-8b-8192',
+      temperature: 0.2,
+      max_completion_tokens: 4096,
+      response_format: { type: 'json_object' }
+    });
 
-    if (!aiResponse?.data?.choices?.[0]?.message) {
+    let generatedText = chatCompletion.choices[0]?.message?.content;
+    if (!generatedText) {
       throw new Error('Invalid response structure from Groq API');
     }
 
-    let generatedText = aiResponse.data.choices[0].message.content.trim();
-
-    generatedText = generatedText
+    generatedText = generatedText.trim()
       .replace(/<think>[\s\S]*?<\/think>/gi, '')
       .replace(/^```json\s*/i, '')
       .replace(/^json\s*/i, '')
@@ -83,14 +75,12 @@ Rules: All values must be strings. No markdown formatting or code fences.
 
   } catch (error) {
     console.error('================ AI ERROR ================');
-    console.error('STATUS:', error.response?.status);
-    console.error('GROQ ERROR:', JSON.stringify(error.response?.data, null, 2));
     console.error('MESSAGE:', error.message);
     console.error('==========================================');
 
     return res.status(500).json({
       message: 'Failed to generate email',
-      error: error.response?.data?.error?.message || error.message
+      error: error.message
     });
   }
 };

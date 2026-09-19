@@ -4,9 +4,9 @@
   "description": "AI COLD MAIL GENERATOR",
   "main": "server.js",
   "scripts": {
-  "start": "node server.js",
-  "dev": "node server.js" 
-},
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
   "keywords": [
     "AI",
     "PROJECT"
@@ -19,7 +19,7 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "groq-sdk": "^1.5.0",
+    "groq-sdk": "^1.6.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.9.2",
     "nodemailer": "^9.0.5"
