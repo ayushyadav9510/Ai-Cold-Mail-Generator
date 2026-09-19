@@ -42,7 +42,7 @@ Rules: All values must be strings. No markdown formatting or code fences.
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
       ],
-      model: 'llama3-8b-8192',
+      model: "openai/gpt-oss-20b",
       temperature: 0.2,
       max_completion_tokens: 4096,
       response_format: { type: 'json_object' }
