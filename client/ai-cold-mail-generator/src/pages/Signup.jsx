@@ -9,57 +9,55 @@ const Signup = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-const handleSubmit = async (e) => {
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
       console.log("Sending direct registration payload for:", email);
 
-      // 1. Backend ko call kiya
+      // 1. Backend API Hit
       const response = await api.post("/auth/register", {
-        username: name, // Ensure aapka name state ka variable yahan 'name' hi ho
+        username: name, 
         email: email.trim().toLowerCase(),
         password,
       });
 
-      // Debugging: Frontend console me check karne ke liye ki kya response aaya
       console.log("SUCCESS RESPONSE FROM BACKEND:", response.data);
-
       const data = response.data;
 
-      // 2. ✨ FIXED: Pehle direct localStorage me token aur user data safe kar dete hain
-      if (data && data.token) {
-        localStorage.setItem("userToken", data.token);
-        localStorage.setItem("userInfo", JSON.stringify(data.user));
-        
-        // 3. AuthContext ka login method execute karein (Safe check ke sath)
-        if (typeof login === 'function') {
-            login(data); 
+      // ✨ FIX 1: Safely handles both data structures (with or without top-level tokens)
+      if (data) {
+        // Safe check to store credentials
+        if (data.token) {
+          localStorage.setItem("userToken", data.token);
+        }
+        if (data.user) {
+          localStorage.setItem("userInfo", JSON.stringify(data.user));
         }
         
         // Success notification
         toast.success(data.message || "Registration Successful!");
 
-        // 4. ✨ FORCE BYPASS: React loops ko todne ke liye location use karenge
+        // ✨ FIX 2: Replaced window.location.href with React Router's native navigate 
+        // to bypass Vercel asset re-load freeze loops
         setTimeout(() => {
-            window.location.href = "/dashboard";
+          navigate("/dashboard");
         }, 800);
       } else {
-        // Agar response me token hi nahi aaya kisi vajah se
-        throw new Error("Token missing in response");
+        throw new Error("Invalid response schema from authentication layer");
       }
 
     } catch (error) {
       console.error("REGISTER FRONTEND SYSTEM CRASH:", error);
       console.log("Error Response object from backend:", error.response?.data);
       
-      // ✨ FIXED: Agar backend response success (201) de raha hai par catch me aa gaya, toh user ko batayein
       const backendMessage = error.response?.data?.message;
       toast.error(backendMessage || "Registration failed. Please check inputs or try again.");
     } finally {
       setLoading(false);
     }
-};
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
